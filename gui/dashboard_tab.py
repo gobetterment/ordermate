@@ -47,18 +47,26 @@ class DashboardTab(QWidget):
     def load_sales_data(self):
         path, _ = QFileDialog.getOpenFileName(self, "판매 데이터 선택", "", "Excel (*.xlsx);;CSV (*.csv)")
         if path:
-            self.parent.sales_data = pd.read_excel(path) if path.endswith('.xlsx') else pd.read_csv(path)
-            # NaN 데이터 제거
-            self.parent.sales_data = self.parent.sales_data.dropna(subset=['상품구분', '브랜드'])
-            QMessageBox.information(self, "성공", "판매 데이터 불러오기 완료")
-            self.update_filter_combo()
-            self.update_dashboard()
+            try:
+                self.parent.sales_data = pd.read_excel(path) if path.endswith('.xlsx') else pd.read_csv(path)
+                # NaN 데이터 제거
+                self.parent.sales_data = self.parent.sales_data.dropna(subset=['상품구분', '브랜드'])
+                QMessageBox.information(self, "성공", "판매 데이터 불러오기 완료")
+                self.update_filter_combo()
+                self.update_dashboard()
+            except Exception as e:
+                QMessageBox.critical(self, "파일 오류", f"판매 데이터를 불러오는 중 오류가 발생했습니다.\n\n{str(e)}\n\n다시 시도해 주세요.")
+                self.parent.sales_data = None
 
     def load_inventory_data(self):
         path, _ = QFileDialog.getOpenFileName(self, "재고 데이터 선택", "", "Excel (*.xlsx);;CSV (*.csv)")
         if path:
-            self.parent.inventory_data = pd.read_excel(path) if path.endswith('.xlsx') else pd.read_csv(path)
-            QMessageBox.information(self, "성공", "재고 데이터 불러오기 완료")
+            try:
+                self.parent.inventory_data = pd.read_excel(path) if path.endswith('.xlsx') else pd.read_csv(path)
+                QMessageBox.information(self, "성공", "재고 데이터 불러오기 완료")
+            except Exception as e:
+                QMessageBox.critical(self, "파일 오류", f"재고 데이터를 불러오는 중 오류가 발생했습니다.\n\n{str(e)}\n\n다시 시도해 주세요.")
+                self.parent.inventory_data = None
 
     def update_filter_combo(self):
         if self.parent.sales_data is not None:

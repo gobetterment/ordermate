@@ -16,11 +16,11 @@ class OrderTab(QWidget):
     def init_ui(self):
         layout = QVBoxLayout()
 
-        load_codes_btn = QPushButton("상품코드 리스트 불러오기")
+        load_codes_btn = QPushButton("상품코드리스트 불러오기")
         load_codes_btn.clicked.connect(self.load_product_codes)
         layout.addWidget(load_codes_btn)
 
-        export_btn = QPushButton("거래처별 발주서 ZIP 저장")
+        export_btn = QPushButton("거래처별 발주서 파일 생성")
         export_btn.clicked.connect(self.export_zip)
         layout.addWidget(export_btn)
 
@@ -80,16 +80,31 @@ class OrderTab(QWidget):
                 total_item = self.model.item(row, columns.index('공급가합계'))
                 total_item.setText(f"{total:,.0f}")
                 total_item.setData(total, Qt.UserRole)
-            except (ValueError, AttributeError):
-                pass
+
+                # === 데이터프레임에도 값 반영 ===
+                code = self.model.item(row, columns.index('자사코드')).text()
+                size = self.model.item(row, columns.index('사이즈명')).text()
+                # 자사코드와 사이즈명으로 행 찾기
+                mask = (self.parent.final_data['자사코드'] == code) & (self.parent.final_data['사이즈명'] == size)
+                self.parent.final_data.loc[mask, '발주수량'] = order_qty
+                self.parent.final_data.loc[mask, '공급가합계'] = total
+            except (ValueError, AttributeError, KeyError, IndexError) as e:
+                print(f'발주수량 동기화 오류: {e}')
 
     def load_product_codes(self):
         path, _ = QFileDialog.getOpenFileName(self, "상품코드 리스트 선택", "", "Excel (*.xlsx);;CSV (*.csv)")
         if path:
-            self.parent.product_data = pd.read_excel(path) if path.endswith('.xlsx') else pd.read_csv(path)
-            self.process_order_data()
-            QMessageBox.information(self, "성공", "상품코드 리스트 불러오기 완료")
-            self.show_table(self.parent.final_data)
+            try:
+                if path.endswith('.xlsx'):
+                    self.parent.product_data = pd.read_excel(path)
+                else:
+                    self.parent.product_data = pd.read_csv(path)
+                self.process_order_data()
+                QMessageBox.information(self, "성공", "상품코드 리스트 불러오기 완료")
+                self.show_table(self.parent.final_data)
+            except Exception as e:
+                QMessageBox.critical(self, "파일 오류", f"파일을 불러오는 중 오류가 발생했습니다.\n\n{str(e)}\n\n다시 시도해 주세요.")
+                self.parent.product_data = None
 
     def process_order_data(self):
         self.parent.final_data = self.data_processor.process_order_data(
@@ -103,12 +118,28 @@ class OrderTab(QWidget):
             QMessageBox.warning(self, "오류", "상품코드를 먼저 불러와 주세요")
             return
 
-        path, _ = QFileDialog.getSaveFileName(self, "ZIP 저장 위치", "", "ZIP (*.zip)")
-        if not path:
+        # 발주수량이 입력된 데이터만 필터링
+        filtered_data = self.parent.final_data[self.parent.final_data['발주수량'] > 0]
+        print(f"\n발주서 저장 시작")
+        print(f"전체 데이터 수: {len(self.parent.final_data)}")
+        print(f"발주수량 > 0 데이터 수: {len(filtered_data)}")
+        
+        if len(filtered_data) == 0:
+            QMessageBox.warning(self, "오류", "발주수량을 입력한 상품이 없습니다")
             return
 
-        self.data_processor.export_zip(self.parent.final_data, path)
-        QMessageBox.information(self, "완료", "발주서 ZIP 저장이 완료되었습니다")
+        # 폴더 선택 다이얼로그
+        save_path = QFileDialog.getExistingDirectory(self, "발주서 저장 위치")
+        if not save_path:
+            return
+
+        print(f"저장 경로: {save_path}")
+
+        # 엑셀 파일로 저장
+        if self.data_processor.export_excel_files(filtered_data, save_path):
+            QMessageBox.information(self, "완료", "발주서 엑셀 파일 저장이 완료되었습니다")
+        else:
+            QMessageBox.warning(self, "오류", "발주서 저장 중 오류가 발생했습니다")
 
     def show_table(self, df):
         self.model.clear()
