@@ -89,7 +89,7 @@ class OrderTab(QWidget):
                 self.parent.final_data.loc[mask, '발주수량'] = order_qty
                 self.parent.final_data.loc[mask, '공급가합계'] = total
             except (ValueError, AttributeError, KeyError, IndexError) as e:
-                print(f'발주수량 동기화 오류: {e}')
+                QMessageBox.warning(self, "오류", f"발주수량 동기화 중 오류가 발생했습니다: {e}")
 
     def load_product_codes(self):
         path, _ = QFileDialog.getOpenFileName(self, "상품코드 리스트 선택", "", "Excel (*.xlsx);;CSV (*.csv)")
@@ -120,9 +120,9 @@ class OrderTab(QWidget):
 
         # 발주수량이 입력된 데이터만 필터링
         filtered_data = self.parent.final_data[self.parent.final_data['발주수량'] > 0]
-        print(f"\n발주서 저장 시작")
-        print(f"전체 데이터 수: {len(self.parent.final_data)}")
-        print(f"발주수량 > 0 데이터 수: {len(filtered_data)}")
+        # print(f"\n발주서 저장 시작")
+        # print(f"전체 데이터 수: {len(self.parent.final_data)}")
+        # print(f"발주수량 > 0 데이터 수: {len(filtered_data)}")
         
         if len(filtered_data) == 0:
             QMessageBox.warning(self, "오류", "발주수량을 입력한 상품이 없습니다")
@@ -133,7 +133,7 @@ class OrderTab(QWidget):
         if not save_path:
             return
 
-        print(f"저장 경로: {save_path}")
+        # print(f"저장 경로: {save_path}")
 
         # 엑셀 파일로 저장
         if self.data_processor.export_excel_files(filtered_data, save_path):
@@ -225,9 +225,9 @@ class OrderTab(QWidget):
         self.order_table.setColumnWidth(14, 80)  # 공급가
         self.order_table.setColumnWidth(15, 100) # 공급가합계
 
-        # 디버깅을 위한 로그 출력
-        print("\n=== 오더탭 디버깅 로그 ===")
-        print("1. 표시된 데이터 샘플:")
-        for i in range(min(5, len(df))):
-            print(f"자사코드: {df.iat[i, df.columns.get_loc('자사코드')]}, 판매수량: {df.iat[i, df.columns.get_loc('판매수량')]}")
-        print("===========================\n") 
+        # # 디버깅을 위한 로그 출력
+        # print("\n=== 오더탭 디버깅 로그 ===")
+        # print("1. 표시된 데이터 샘플:")
+        # for i in range(min(5, len(df))):
+        #     print(f"자사코드: {df.iat[i, df.columns.get_loc('자사코드')]}, 판매수량: {df.iat[i, df.columns.get_loc('판매수량')]}")
+        # print("===========================\n") 

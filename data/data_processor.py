@@ -3,6 +3,7 @@ import zipfile
 import datetime
 from io import BytesIO
 import os
+from PyQt5.QtWidgets import QMessageBox
 
 class DataProcessor:
     def process_order_data(self, product_data, inventory_data, sales_data):
@@ -71,27 +72,28 @@ class DataProcessor:
     def export_excel_files(self, data, save_path):
         """발주서를 개별 엑셀 파일로 저장"""
         try:
-            print(f"저장 시작: 총 {len(data)}개 데이터")
+            # print(f"저장 시작: 총 {len(data)}개 데이터")
             
             # 발주수량이 0보다 큰 데이터만 필터링
             data = data[data['발주수량'] > 0]
-            print(f"발주수량 > 0 필터링 후: {len(data)}개 데이터")
+            # print(f"발주수량 > 0 필터링 후: {len(data)}개 데이터")
             
             if len(data) == 0:
-                print("저장할 데이터가 없습니다.")
+                QMessageBox.warning(self, "오류", f"저장할 데이터가 없습니다.")
+                # print("저장할 데이터가 없습니다.")
                 return False
             
             # 거래처별로 데이터 그룹화
             grouped_data = data.groupby('거래처명')
-            print(f"거래처 수: {len(grouped_data)}")
+            # print(f"거래처 수: {len(grouped_data)}")
             
             # 현재 날짜 가져오기
             current_date = datetime.datetime.now().strftime('%y%m%d')
             
             # 각 거래처별로 엑셀 파일 생성
             for 거래처명, group_data in grouped_data:
-                print(f"\n거래처 '{거래처명}' 처리 중...")
-                print(f"데이터 수: {len(group_data)}")
+                # print(f"\n거래처 '{거래처명}' 처리 중...")
+                # print(f"데이터 수: {len(group_data)}")
                 
                 # 필요한 컬럼만 선택
                 export_data = group_data[['거래처명', '자사코드', '상품코드', '상품명', '칼라명', '사이즈명', '발주수량', '공급가', '공급가합계', 'TAG가']]
@@ -99,7 +101,7 @@ class DataProcessor:
                 # 파일명 생성
                 filename = f"(홀라인){거래처명}_발주서_{current_date}.xlsx"
                 file_path = os.path.join(save_path, filename)
-                print(f"저장 경로: {file_path}")
+                # print(f"저장 경로: {file_path}")
                 
                 # 엑셀 파일로 저장 (xlsxwriter 엔진 사용)
                 with pd.ExcelWriter(file_path, engine='xlsxwriter') as writer:
@@ -161,9 +163,9 @@ class DataProcessor:
                     noborder_number_format = writer.book.add_format({'num_format': '#,##0', 'align': 'right', 'font_size': 9})
                     worksheet.write_formula(total_row, 6, f'SUM(G2:G{total_row})', noborder_number_format)  # 발주수량 합계
                     worksheet.write_formula(total_row, 8, f'SUM(I2:I{total_row})', noborder_number_format)  # 공급가합계 합계
-                print(f"파일 저장 완료: {filename}")
-            print("\n모든 파일 저장 완료")
+                # print(f"파일 저장 완료: {filename}")
+            QMessageBox.information(None, "완료", "모든 파일 저장이 완료되었습니다.")
             return True
         except Exception as e:
-            print(f"엑셀 파일 저장 중 오류 발생: {str(e)}")
+            QMessageBox.warning(None, "오류", f"엑셀 파일 저장 중 오류 발생: {str(e)}")
             return False 
